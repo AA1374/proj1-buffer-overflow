@@ -1,0 +1,37 @@
+start_time        : 1728044021
+last_update       : 1728046576
+run_time          : 2555
+fuzzer_pid        : 522739
+cycles_done       : 0
+cycles_wo_finds   : 0
+execs_done        : 179088
+execs_per_sec     : 70.09
+execs_ps_last_min : 102.69
+paths_total       : 209
+paths_favored     : 71
+paths_found       : 208
+paths_imported    : 0
+max_depth         : 3
+cur_path          : 68
+pending_favs      : 53
+pending_total     : 189
+variable_paths    : 0
+stability         : 100.00%
+bitmap_cvg        : 4.24%
+unique_crashes    : 1
+unique_hangs      : 0
+last_path         : 1728046450
+last_crash        : 1728046467
+last_hang         : 0
+execs_since_crash : 9970
+exec_timeout      : 60
+slowest_exec_ms   : 0
+peak_rss_mb       : 0
+cpu_affinity      : -1
+edges_found       : 850
+var_byte_count    : 0
+havoc_expansion   : 0
+afl_banner        : bsdtar
+afl_version       : ++2.68c
+target_mode       : shmem_testcase default
+command_line      : afl-fuzz -i testcases -o results install/bin/bsdtar -O -xf @@

@@ -1,0 +1,102 @@
+TODO: Include a stack trace from GDB of bsdtar crashing on an input found by
+afl-fuzz. Briefly describe what the vulnerability is in the libarchive source
+code (2-3 sentences).
+
+Stack Trace
+user@comp4634:~/proj1/fuzz/rinstall/bin/bsdtar -O -xf ./results/crashes/id:000000,sig:11,src:000061,time:2s
+UndefinedBehaviorSanitizer:DEADLYSIGNAL/bsdtar -O -xf ./results/crashes/id:000000,sig:11,src:000061,time:24
+==696==ERROR: UndefinedBehaviorSanitizer: SEGV on unknown address 0x000000e92000 (pc 0x000000446b1a bp 0x00
+==696==The signal is caused by a WRITE memory access.
+==696==WARNING: invalid path to external symbolizer!
+==696==WARNING: Failed to use and restart external symbolizer!
+    #0 0x446b1a  (/home/user/proj1/fuzz/install/bin/bsdtar+0x446b1a)
+    #1 0x446697  (/home/user/proj1/fuzz/install/bin/bsdtar+0x446697)
+    #2 0x43d503  (/home/user/proj1/fuzz/install/bin/bsdtar+0x43d503)
+    #3 0x445fb3  (/home/user/proj1/fuzz/install/bin/bsdtar+0x445fb3)
+    #4 0x43af97  (/home/user/proj1/fuzz/install/bin/bsdtar+0x43af97)
+    #5 0x444b46  (/home/user/proj1/fuzz/install/bin/bsdtar+0x444b46)
+    #6 0x42a733  (/home/user/proj1/fuzz/install/bin/bsdtar+0x42a733)
+    #7 0x42b2c6  (/home/user/proj1/fuzz/install/bin/bsdtar+0x42b2c6)
+    #8 0x4289f6  (/home/user/proj1/fuzz/install/bin/bsdtar+0x4289f6)
+    #9 0x7ffff7c33d09  (/lib/x86_64-linux-gnu/libc.so.6+0x23d09)
+    #10 0x406d39  (/home/user/proj1/fuzz/install/bin/bsdtar+0x406d39)
+
+UndefinedBehaviorSanitizer can not provide additional info.
+SUMMARY: UndefinedBehaviorSanitizer: SEGV (/home/user/proj1/fuzz/install/bin/bsdtar+0x446b1a) 
+==696==ABORTING             gdb --args install/bin/bsdtar -O -xf ./results/crashes/id:000000,sig:11,src:000
+GNU gdb (Debian 10.1-1.7) 10.1.90.20210103-git/bin/bsdtar -O -xf ./results/crashes/id:000000,sig:11,src:000
+
+(gdb) run
+Starting program: /home/user/proj1/fuzz/install/bin/bsdtar -O -xf ./results/crashes/id:000000,sig:11,src:00
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Program received signal SIGSEGV, Segmentation fault.
+0x0000000000446b1a in next_code (self=self@entry=0xe310e0)
+    at libarchive/archive_read_support_filter_compress.c:386
+386			*state->stackp++ = state->suffix[code];
+(gdb) bt
+#0  0x0000000000446b1a in next_code (self=self@entry=0xe310e0)
+    at libarchive/archive_read_support_filter_compress.c:386
+#1  0x0000000000446698 in compress_filter_read (self=0xe310e0, pblock=0xe31168)
+    at libarchive/archive_read_support_filter_compress.c:287
+#2  0x000000000043d504 in __archive_read_filter_ahead (filter=0xe310e0, 
+    min=<optimized out>, avail=<optimized out>)
+    at libarchive/archive_read.c:1275
+#3  0x0000000000445fb4 in bzip2_reader_bid (self=self@entry=0xe14c28, 
+    filter=0x5315f0) at libarchive/archive_read_support_filter_bzip2.c:134
+#4  0x000000000043af98 in choose_filters (a=0xe14b20)
+    at libarchive/archive_read.c:562
+#5  archive_read_open1 (_a=_a@entry=0xe14b20) at libarchive/archive_read.c:506
+#6  0x0000000000444d19 in archive_read_open_filenames (a=<optimized out>, 
+    a@entry=0xe14b20, filenames=<optimized out>, 
+    filenames@entry=0x7fffffffe0a0, block_size=<optimized out>, 
+    block_size@entry=10240) at libarchive/archive_read_open_filename.c:150
+#7  0x0000000000444b47 in archive_read_open_filename (a=0x5315f0, 
+    a@entry=0xe14b20, 
+    filename=0x7fffffffe765 "./results/crashes/id:000000,sig:11,src:000061,time:2446012,op:int16,pos:5,val=
+    at libarchive/archive_read_open_filename.c:107
+#8  0x000000000042a734 in read_archive (bsdtar=bsdtar@entry=0x7fffffffe200, 
+    mode=mode@entry=120 'x', writer=writer@entry=0xe13620) at tar/read.c:204
+--Type <RET> for more, q to quit, c to continue without paging--
+#9  0x000000000042b2c7 in tar_mode_x (bsdtar=bsdtar@entry=0x7fffffffe200)
+    at tar/read.c:104
+#10 0x00000000004289f7 in main (argc=<optimized out>, argv=<optimized out>)
+    at tar/bsdtar.c:804
+
+
+Analyzing the Values and putting watchpoint to better understand the vulnerability:
+(gdb) print code
+$3 = 256
+(gdb) print state->prefix[code]
+$4 = 256
+(gdb) print state->prefix[code]
+$5 = 256
+(gdb) print sizeof(state->stack)
+$6 = 65300
+(gdb) watch state->stackp
+Watchpoint 5: state->stackp
+(gdb) continue
+Continuing.
+
+Watchpoint 5: state->stackp
+
+Old value = (unsigned char *) 0xe61208 "\017\377"
+New value = (unsigned char *) 0xe61209 "\377"
+0x0000000000446b1a in next_code (self=self@entry=0xe310e0)
+    at libarchive/archive_read_support_filter_compress.c:386
+386			*state->stackp++ = state->suffix[code];
+(gdb) Continuing.
+
+Watchpoint 5: state->stackp
+
+Old value = (unsigned char *) 0xe61208 "\017\377"
+New value = (unsigned char *) 0xe61209 "\377"
+0x0000000000446b1a in next_code (self=self@entry=0xe310e0)
+    at libarchive/archive_read_support_filter_compress.c:386
+386                     *state->stackp++ = state->suffix[code];
+
+Vulnerability Assessment
+The vulnerability in the libarchive source code stems from an out-of-bounds write caused by improper handling of certain values, specifically when `code` is 256. In the `next_code` function within `archive_read_support_filter_compress.c`, there is an attempt to increment and dereference `state->stackp` to write the value of `state->suffix[code]`. However, when `code` equals 256, this results in writing beyond the allocated buffer for `state->stack`, as indicated by the watchpoint changes and the memory access violation at the address derived from the increment of `state->stackp`. This out-of-bounds write occurs because `code` is used to index arrays (`state->suffix` and `state->prefix`) without sufficient bounds checking, leading to a segmentation fault when the index is out of range. This leads to buffer overflow vulnerability.
+
+
